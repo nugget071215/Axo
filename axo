@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+
+cmd="$1"
+pkg="$2"
+
+AXO_ROOT="/etc/nixos/axo"
+CONFIG="$AXO_ROOT/config"
+DB="$AXO_ROOT/packages.db"
+TARGET="$AXO_ROOT/axo.nix"
+
+case "$cmd" in
+    install)
+        entry=$(grep -im1 "^$pkg|" "$DB")
+        if [ -n "$entry" ]; then
+            full_attr=$(echo "$entry" | cut -d'|' -f2)
+            echo "Installing $pkg..."
+
+            mkdir -p "$CONFIG"
+
+            if ! grep -Fxq "$full_attr" "$CONFIG/axo.txt" 2>/dev/null; then
+                echo "$full_attr" >> "$CONFIG/axo.txt"
+            fi
+
+            {
+                cat "$CONFIG/header1.txt"
+                cat "$CONFIG/header2.txt"
+                cat "$CONFIG/header3.txt"
+                cat "$CONFIG/axo.txt"
+                cat "$CONFIG/footer.txt"
+            } | sudo tee "$TARGET" > /dev/null
+
+            sudo nixos-rebuild switch
+
+            echo "$pkg fully installed!"
+        else
+            echo "Package '$pkg' not found!"
+            exit 1
+        fi
+        ;;
+    uninstall)
+        entry=$(grep -im1 "^$pkg|" "$DB")
+        if [ -n "$entry" ]; then
+            full_attr=$(echo "$entry" | cut -d'|' -f2)
+        else
+            full_attr="$pkg"
+        fi
+
+        if grep -Fxq "$full_attr" "$CONFIG/axo.txt" 2>/dev/null; then
+            echo "Uninstalling $pkg..."
+
+            sed -i "\|^$full_attr$|d" "$CONFIG/axo.txt"
+
+            {
+                cat "$CONFIG/header1.txt"
+                cat "$CONFIG/header2.txt"
+                cat "$CONFIG/header3.txt"
+                cat "$CONFIG/axo.txt"
+                cat "$CONFIG/footer.txt"
+            } | sudo tee "$TARGET" > /dev/null
+
+            sudo nixos-rebuild switch
+
+            echo "$pkg fully uninstalled!"
+        else
+            echo "Package '$pkg' is not installed!"
+            exit 1
+        fi
+        ;;
+    list)
+        while IFS= read -r line; do
+            mapped=$(grep -m1 "|$line$" "$DB" | cut -d'|' -f1)
+            if [ -n "$mapped" ]; then
+                echo "$mapped"
+            else
+                echo "$line"
+            fi
+        done < "$CONFIG/axo.txt"
+        ;;
+    update-db)
+        echo "This may take a while..."
+
+       TERM=dumb nix search nixpkgs '^' 2>/dev/null \
+        | sed -E 's/\x1B\[[0-9;]*[[:alpha:]]//g' \
+        | awk '
+        /^\*/ {
+            attr = $2
+
+            sub(/^legacyPackages\.[^.]+\./, "", attr)
+
+            n = split(attr, parts, ".")
+            short = parts[n]
+
+            print short "|" attr
+        }' > "$DB"
+
+        echo "Database has been updated!"
+        ;;
+    enable)
+        if grep -q "$pkg" "$CONFIG/axo.txt"; then
+            echo "Enabling $pkg!"
+            echo "programs.$pkg.enable = true;" >> "$CONFIG/header2.txt"
+            {
+                cat "$CONFIG/header1.txt"
+                cat "$CONFIG/header2.txt"
+                cat "$CONFIG/header3.txt"
+                cat "$CONFIG/axo.txt"
+                cat "$CONFIG/footer.txt"
+            } | sudo tee "$TARGET" > /dev/null
+            sudo nixos-rebuild switch
+            echo "$pkg has been enabled!"
+        else
+            echo "Package is not installed! Please install the package first."
+        fi
+        ;;
+    disable)
+        if grep -q "$pkg" "$CONFIG/header2.txt"; then
+            echo "Disabling $pkg!"
+            sed -i "/programs.$pkg.enable = true;/d" "$CONFIG/header2.txt"
+            {
+                cat "$CONFIG/header1.txt"
+                cat "$CONFIG/header2.txt"
+                cat "$CONFIG/header3.txt"
+                cat "$CONFIG/axo.txt"
+                cat "$CONFIG/footer.txt"
+            } | sudo tee "$TARGET" > /dev/null
+            sudo nixos-rebuild switch
+            echo "$pkg has been disabled"
+        else
+            echo "Package isn't enabled!"
+        fi
+        ;;
+    *)
+        echo "Axo currently only supports these terms:
+
+install: Installs a package from NixPKGS (currently not supporting flakes)
+uninstall: Uninstalls a package that you've downloaded
+
+enable: Enables any packages (Example enabling Hyprland allows you to access the environment)
+disable: Disables any packages (Example disabling Hyprland disables you to access the environment)
+
+list: Lists all packages you've downloaded
+update-db: Updates the packages you are able to install
+
+Please note that flakes are not currently supported, and the system is very bare. Bugs are very common.
+All files used are in one location, /etc/nixos/axo/"
+esac
