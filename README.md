@@ -2,6 +2,8 @@
 
 ## DIRECTIONS
 
+DO NOT DELETE ANY OF THE FILES WITHIN THE REPO, THEY'RE ALL IN THERE FOR A REASON (except for the .git folder you can get rid of that)
+
 ### 1
 Copy the github repo.
 <pre> git clone https://github.com/nugget071215/Axo cd Axo </pre>
