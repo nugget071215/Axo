@@ -37,3 +37,26 @@ home.nix
 ### Temporary (Only for current terminal instance)
 <pre> export PATH="$PATH:/absolute/path/to/the/desired/folder" </pre>
 
+### 5
+Go to configuration.nix and put ./axo/axo.nix into the imports section.
+<pre>
+  imports = [
+    (other imports)
+    ./axo/axo.nix
+  ];
+</pre>
+
+## USAGE
+Axo is a package manager aimed at making NixOS much easier to deal with. As of June 29th 2026, it does not support flakes, though that is being worked on.
+It must be ran with sudo privileges
+
+Theres a few options for Axo
+
+install: Installs any packages that are available in NixPkgs. (not supporting flakes)
+uninstall: Removes any packages that have been installed.
+
+enable: Will enable any package that has been installed. (very prone to bugs so only use for window managers)
+disable: Will disable any package that has been installed.
+
+list: Lists all packages that have been installed using axo.
+update-db: Updates the database that is stored locally.
