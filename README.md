@@ -6,40 +6,44 @@ AXO is a lightweight tool aimed at making package management on NixOS easier to 
 
 ## Installation
 ### 1. Clone the repository
-git clone https://github.com/nugget071215/Axo
+<pre> git clone https://github.com/nugget071215/Axo </pre>
 cd Axo
 ### 2. Move the main script
-mv axo ~
+<pre> mv axo ~ </pre>
 ### 3. Move AXO into NixOS config directory
-mv ~/Axo /etc/nixos
+<pre> mv ~/Axo /etc/nixos </pre>
 ### 4. Add AXO to your system
 #### Option A: Home Manager alias
+<pre> 
 programs.bash = {
   enable = true;
   shellAliases = {
     axo = "~/path/to/axo/file";
   };
 };
+</pre>
 #### Option B: Add to PATH
 
 Temporary:
 
-export PATH="$PATH:/absolute/path/to/folder"
+<pre> export PATH="$PATH:/absolute/path/to/folder" </pre>
 
 Permanent (~/.bashrc):
 
-export PATH="$PATH:/absolute/path/to/folder"
+<pre> export PATH="$PATH:/absolute/path/to/folder" </pre>
 ### 5. Enable AXO in NixOS
 
 Add this to configuration.nix:
 
+<pre>
 imports = [
   ./axo/axo.nix
 ];
+</pre>
 
 Then rebuild:
 
-sudo nixos-rebuild switch
+<pre> sudo nixos-rebuild switch </pre>
 ## Usage
 
 AXO provides simple package management commands:
