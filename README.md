@@ -60,3 +60,5 @@ disable: Will disable any package that has been installed.
 
 list: Lists all packages that have been installed using axo.
 update-db: Updates the database that is stored locally.
+
+You are able to view this again by inputting only "axo"
