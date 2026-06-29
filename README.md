@@ -8,6 +8,10 @@ AXO is a lightweight tool aimed at making package management on NixOS easier to 
 ### 1. Clone the repository
 <pre> git clone https://github.com/nugget071215/Axo </pre>
 cd Axo
+
+## Optional:
+use the install.sh script in the repo, however it will assume you'll have the folders and put them in predetermined places. If you want to customize them then do the manual install
+
 ### 2. Move the main script
 <pre> mv axo ~ </pre>
 ### 3. Move AXO into NixOS config directory
