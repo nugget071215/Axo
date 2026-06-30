@@ -2,16 +2,29 @@
 
 cmd="$1"
 shift
-pkgs=("$@")
+pkg=("$@")
+
+AXO_VERSION="1.01"
 
 AXO_ROOT="/etc/nixos/axo"
 CONFIG="$AXO_ROOT/config"
 DB="$AXO_ROOT/packages.db"
 TARGET="$AXO_ROOT/axo.nix"
 
+build_nix() {
+  {
+    cat "$CONFIG/header1.txt"
+    cat "$CONFIG/header2.txt"
+    cat "$CONFIG/header3.txt"
+    cat "$CONFIG/axo.txt"
+    cat "$CONFIG/footer.txt"
+  }
+}
+
 case "$cmd" in
+
 install)
-  for pkg in "${pkgs[@]}"; do
+  for pkg in "${pkg[@]}"; do
     entry=$(grep -im1 "^$pkg|" "$DB")
 
     if [ -n "$entry" ]; then
@@ -28,51 +41,44 @@ install)
     fi
   done
 
-  {
-    cat "$CONFIG/header1.txt"
-    cat "$CONFIG/header2.txt"
-    cat "$CONFIG/header3.txt"
-    cat "$CONFIG/axo.txt"
-    cat "$CONFIG/footer.txt"
-  } | sudo tee "$TARGET" >/dev/null
+  tmp_file="$(mktemp)"
+  build_nix >"$tmp_file"
+  sudo mv "$tmp_file" "$TARGET"
 
   sudo nixos-rebuild switch
-  echo "Install complete!"
+  echo "All packages installed!"
   ;;
 
 uninstall)
-  for pkg in "${pkgs[@]}"; do
-    entry=$(grep -im1 "^$pkg|" "$DB")
+  entry=$(grep -im1 "^$pkg|" "$DB")
 
-    if [ -n "$entry" ]; then
-      full_attr=$(echo "$entry" | cut -d'|' -f2)
-    else
-      full_attr="$pkg"
-    fi
+  if [ -n "$entry" ]; then
+    full_attr=$(echo "$entry" | cut -d'|' -f2)
+  else
+    full_attr="$pkg"
+  fi
 
-    if grep -Fxq "$full_attr" "$CONFIG/axo.txt" 2>/dev/null; then
-      echo "Uninstalling $pkg..."
-      sed -i "\|^$full_attr$|d" "$CONFIG/axo.txt"
-    else
-      echo "Package '$pkg' is not installed!"
-    fi
-  done
+  if grep -Fxq "$full_attr" "$CONFIG/axo.txt" 2>/dev/null; then
+    echo "Uninstalling $pkg..."
 
-  {
-    cat "$CONFIG/header1.txt"
-    cat "$CONFIG/header2.txt"
-    cat "$CONFIG/header3.txt"
-    cat "$CONFIG/axo.txt"
-    cat "$CONFIG/footer.txt"
-  } | sudo tee "$TARGET" >/dev/null
+    sed -i "\|^$full_attr$|d" "$CONFIG/axo.txt"
 
-  sudo nixos-rebuild switch
-  echo "Uninstall complete!"
+    tmp_file="$(mktemp)"
+    build_nix >"$tmp_file"
+    sudo mv "$tmp_file" "$TARGET"
+
+    sudo nixos-rebuild switch
+    echo "$pkg fully uninstalled!"
+  else
+    echo "Package '$pkg' is not installed!"
+    exit 1
+  fi
   ;;
 
 list)
   while IFS= read -r line; do
     mapped=$(grep -m1 "|$line$" "$DB" | cut -d'|' -f1)
+
     if [ -n "$mapped" ]; then
       echo "$mapped"
     else
@@ -82,86 +88,82 @@ list)
   ;;
 
 update-db)
-  echo "This may take a while..."
+  echo "Updating database..."
 
   TERM=dumb nix search nixpkgs '^' 2>/dev/null |
     sed -E 's/\x1B\[[0-9;]*[[:alpha:]]//g' |
     awk '
-        /^\*/ {
-            attr = $2
+      /^\*/ {
+        attr = $2
+        sub(/^legacyPackages\.[^.]+\./, "", attr)
 
-            sub(/^legacyPackages\.[^.]+\./, "", attr)
+        n = split(attr, parts, ".")
+        short = parts[n]
 
-            n = split(attr, parts, ".")
-            short = parts[n]
+        print short "|" attr
+      }' >"$DB"
 
-            print short "|" attr
-        }' >"$DB"
-
-  echo "Database has been updated!"
+  echo "Database updated!"
   ;;
 
 enable)
-  for pkg in "${pkgs[@]}"; do
-    if grep -q "$pkg" "$CONFIG/axo.txt"; then
-      echo "Enabling $pkg!"
-      echo "programs.$pkg.enable = true;" >>"$CONFIG/header2.txt"
-    else
-      echo "Package '$pkg' is not installed! Skipping."
-    fi
-  done
+  if grep -Fxq "$pkg" "$CONFIG/axo.txt"; then
+    echo "Enabling $pkg!"
+    echo "programs.$pkg.enable = true;" >>"$CONFIG/header2.txt"
 
-  {
-    cat "$CONFIG/header1.txt"
-    cat "$CONFIG/header2.txt"
-    cat "$CONFIG/header3.txt"
-    cat "$CONFIG/axo.txt"
-    cat "$CONFIG/footer.txt"
-  } | sudo tee "$TARGET" >/dev/null
+    tmp_file="$(mktemp)"
+    build_nix >"$tmp_file"
+    sudo mv "$tmp_file" "$TARGET"
 
-  sudo nixos-rebuild switch
-  echo "Enable complete!"
+    sudo nixos-rebuild switch
+    echo "$pkg enabled!"
+  else
+    echo "Package is not installed!"
+  fi
   ;;
 
 disable)
-  for pkg in "${pkgs[@]}"; do
-    if grep -q "$pkg" "$CONFIG/header2.txt"; then
-      echo "Disabling $pkg!"
-      sed -i "/programs.$pkg.enable = true;/d" "$CONFIG/header2.txt"
-    else
-      echo "Package '$pkg' isn't enabled!"
-    fi
-  done
+  if grep -q "programs.$pkg.enable = true;" "$CONFIG/header2.txt"; then
+    echo "Disabling $pkg!"
+    sed -i "/programs.$pkg.enable = true;/d" "$CONFIG/header2.txt"
 
-  {
-    cat "$CONFIG/header1.txt"
-    cat "$CONFIG/header2.txt"
-    cat "$CONFIG/header3.txt"
-    cat "$CONFIG/axo.txt"
-    cat "$CONFIG/footer.txt"
-  } | sudo tee "$TARGET" >/dev/null
+    tmp_file="$(mktemp)"
+    build_nix >"$tmp_file"
+    sudo mv "$tmp_file" "$TARGET"
 
-  sudo nixos-rebuild switch
-  echo "Disable complete!"
+    sudo nixos-rebuild switch
+    echo "$pkg disabled"
+  else
+    echo "Package isn't enabled!"
+  fi
   ;;
 
+update-pkg-mgr)
+  echo "Updating Axo package manager..."
+
+  TMP="/tmp/axo-update"
+  rm -rf "$TMP"
+
+  git clone https://github.com/nugget071215/Axo.git "$TMP"
+
+  if [ ! -f "$TMP/axo" ]; then
+    echo "Failed: axo binary not found in repo"
+    exit 1
+  fi
+
+  sudo cp "$TMP/axo" "$AXO_ROOT/axo"
+  sudo chmod +x "$AXO_ROOT/axo"
+
+  rm -rf "$TMP"
+
+  echo "Axo updated successfully!"
+  ;;
+version)
+  echo "$AXO_VERSION"
+  ;;
 *)
-  echo "Axo currently only supports these terms:
-
-install: Installs packages from Nixpkgs (multi-package supported)
-uninstall: Removes installed packages
-
-enable: Enables NixOS programs
-disable: Disables NixOS programs
-
-list: Lists installed packages
-update-db: Updates package database
-
-Usage examples:
-  axo install neovim git kitty
-  axo uninstall firefox vlc
-  axo enable hyprland waybar
-
-Note: This system is still experimental and may contain bugs."
+  echo "Axo commands:
+install | uninstall | enable | disable | list | update-db | update-pkg-mgr | version"
   ;;
+
 esac
