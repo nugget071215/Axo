@@ -2,8 +2,6 @@
 
 mkdir -p ~/.local/bin
 
-cd Axo
-
 mv axo ~
 
 sudo mv ~/Axo /etc/nixos
