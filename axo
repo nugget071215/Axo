@@ -6,7 +6,7 @@ pkg=("$@")
 
 AXO_VERSION="1.01"
 
-AXO_ROOT="/etc/nixos/axo"
+AXO_ROOT="/etc/nixos/Axo"
 CONFIG="$AXO_ROOT/config"
 DB="$AXO_ROOT/packages.db"
 TARGET="$AXO_ROOT/axo.nix"
