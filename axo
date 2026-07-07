@@ -10,6 +10,17 @@ AXO_ROOT="/etc/nixos/Axo"
 CONFIG="$AXO_ROOT/config"
 DB="$AXO_ROOT/packages.db"
 TARGET="$AXO_ROOT/axo.nix"
+path_to_file="/etc/nixos/flake.nix" # Edit the flake.nix path here! (/etc/nixos/flake.nix by default)
+
+build_nix() {
+  {
+    cat "$CONFIG/header1.txt"
+    cat "$CONFIG/header2.txt"
+    cat "$CONFIG/header3.txt"
+    cat "$CONFIG/axo.txt"
+    cat "$CONFIG/footer.txt"
+  }
+}
 
 build_nix() {
   {

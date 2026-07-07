@@ -2,7 +2,7 @@
 
 AXO is a lightweight tool aimed at making package management on NixOS easier to handle.
 
-⚠️ Note: AXO currently does not support flakes (work in progress). It requires sudo privileges.
+⚠️ Note: Axo requires sudo privileges. Flake management does not include uninstalling.
 
 ## Installation
 ### 1. Clone the repository
@@ -60,6 +60,7 @@ enable – Enable installed packages (mainly window managers)
 disable – Disable installed packages
 list – Show installed packages
 update-db – Update local database
+flakes - Installs a package that's a valid flake
 
 ## Notes
 Do not delete files inside the repository unless you understand their purpose.
