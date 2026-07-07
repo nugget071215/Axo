@@ -4,13 +4,23 @@ cmd="$1"
 shift
 pkg=("$@")
 
-AXO_VERSION="1.11"
+AXO_VERSION="1.01"
 
 AXO_ROOT="/etc/nixos/Axo"
 CONFIG="$AXO_ROOT/config"
 DB="$AXO_ROOT/packages.db"
 TARGET="$AXO_ROOT/axo.nix"
 path_to_file="/etc/nixos/flake.nix" # Edit the flake.nix path here! (/etc/nixos/flake.nix by default)
+
+build_nix() {
+  {
+    cat "$CONFIG/header1.txt"
+    cat "$CONFIG/header2.txt"
+    cat "$CONFIG/header3.txt"
+    cat "$CONFIG/axo.txt"
+    cat "$CONFIG/footer.txt"
+  }
+}
 
 build_nix() {
   {
@@ -162,38 +172,9 @@ update-pkg-mgr)
 version)
   echo "$AXO_VERSION"
   ;;
-flakes)
-  if [[ -e "$path_to_file" ]]; then
-    read -rp "Are you sure? The nature of flakes means that we can't determine if it exists or not (for now at least) so make sure you have a valid github link y/N " answer
-
-    case "${answer,,}" in
-    y | yes)
-      read -rp "Enter the github repo link (e.g. NixOS/nixpkgs): " repo
-      read -rp "Enter flake output (optional leave blank for none): " output
-
-      if [[ -z "$output" ]]; then
-        echo "Installing github:$repo ..."
-        nix profile add "github:$repo"
-      else
-        echo "Installing github:$repo#$output ..."
-        nix profile add "github:$repo#$output"
-      fi
-      ;;
-    n | no)
-      echo "Aborting"
-      exit 0
-      ;;
-    *)
-      echo "Please say yes or no."
-      ;;
-    esac
-  else
-    echo "Theres no flake.nix file in /etc/nixos try editing the path in ~/.local/bin/axo or wherever you put the executable script."
-  fi
-  ;;
 *)
   echo "Axo commands:
-install | uninstall | enable | disable | list | update-db | update-pkg-mgr | flakes | version"
+install | uninstall | enable | disable | list | update-db | update-pkg-mgr | version"
   ;;
 
 esac

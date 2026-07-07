@@ -1,13 +1,32 @@
 #!/usr/bin/env bash
 
-mkdir -p ~/.local/bin
+set -e
 
-cd Axo
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TARGET="/etc/nixos/Axo"
 
-mv axo ~
+echo "[*] Creating local bin directory..."
+mkdir -p "$HOME/.local/bin"
 
-sudo mv ~/Axo /etc/nixos
+echo "[*] Installing Axo system files..."
 
-echo 'export PATH="$HOME/.local/bin:$PATH"' >>"$HOME/.bashrc"
+if [ "$EUID" -ne 0 ]; then
+    sudo -v
+fi
 
-echo "Put ./axo/axo.nix in the imports section of your configuration.nix file and rebuild to finish installation."
+sudo mkdir -p /etc/nixos
+
+# copy instead of mv (safer + repeatable)
+sudo cp -r "$SCRIPT_DIR" "$TARGET"
+
+echo "[*] Ensuring PATH setup..."
+if ! grep -q 'HOME/.local/bin' "$HOME/.bashrc"; then
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+fi
+
+echo ""
+echo "[✓] Installation complete"
+echo ""
+echo "Next step:"
+echo "  Add this to your configuration.nix:"
+echo "  imports = [ /etc/nixos/Axo/axo.nix ];"
